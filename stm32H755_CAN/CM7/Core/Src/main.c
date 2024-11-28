@@ -147,38 +147,54 @@ Error_Handler();
       // Send message
 //	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
 //		// Message successfully added to the transmit queue
-//		printf("Add\n\r");
+//		printf("Success\n\r");
 //	} else {
 //		// Handle error
 //		printf("No success\n\r");
 //	}
 //	HAL_Delay(1000); // Wait 1 second before sending the next message
 
-      // Wait until a CAN message is received
-      while (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK);
+
+	// Esperar a que se reciba un mensaje CAN
+	if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
+		// Imprimir el identificador del mensaje
+		printf("\n\rMensaje recibido - ID: 0x%lx\n\r", RxHeader.Identifier);
+	} else {
+		printf("Error al recibir el mensaje CAN.\n\r");
+	}
 
 
-      // Delay for 10 ms
-//      HAL_Delay(10);
+//	printf("A\n\r");
+//	HAL_FDCAN_RxFifo0Callback( &hfdcan1, FDCAN_RX_FIFO0);
+//	printf("B\n\r");
+
+	HAL_Delay(1000); // Esperar antes de procesar el siguiente mensaje
+
+
+
+//      // Wait until a CAN message is received
+//      while (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK);
 //
 //      // Print CAN ID
 //      printf("\n\r0x%lx", RxHeader.Identifier);
 //
 //      // Print the CAN data length and data bytes
-//      printf(" [%lu]", RxHeader.DataLength >> 16);  // Data length is stored in bits 16-19
+////      printf(" [%lu]", RxHeader.DataLength >> 16);  // Data length is stored in bits 16-19
+//      printf(" [%lu]", RxHeader.DataLength);  // Data length is stored in bits 16-19
 //      printf(" ");
 //
 //      // Loop through each byte of the CAN message data and print it
-//      for (int i = 0; i < (RxHeader.DataLength >> 16); i++) {
+//      for (int i = 0; i < (RxHeader.DataLength); i++) {
 //          printf("0x%02X ", RxData[i]);  // Print each byte in hexadecimal
 //      }
 //
 //      // Delay for 100 ms
 //      HAL_Delay(100);
 
+
+
 //	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-	  printf("A\n\r");
-//	  printf("Welcome to the CANbus!!!\n\r");
+//	  printf("A\n\r");
 //	  HAL_Delay(2000);
   }
   /* USER CODE END 3 */
@@ -292,12 +308,34 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE BEGIN FDCAN1_Init 2 */
   /*AAO+*/
    /* Configure Rx filter */
-    sFilterConfig.IdType = FDCAN_STANDARD_ID;
-    sFilterConfig.FilterIndex = 0;
-    sFilterConfig.FilterType = FDCAN_FILTER_MASK;
-    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    sFilterConfig.FilterID1 = 0x000;
-    sFilterConfig.FilterID2 = 0x000;
+
+  //  CAN Standard Configuration
+//    sFilterConfig.IdType = FDCAN_STANDARD_ID;
+//    sFilterConfig.FilterIndex = 0;
+//    sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+//    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+//    sFilterConfig.FilterID1 = 0x123;           // El ID específico que deseas filtrar
+//    sFilterConfig.FilterID2 = 0x7FF;           // Máscara para filtrar exactamente el ID 0x123
+
+  	//	CAN J1939 Configuration
+	sFilterConfig.IdType = FDCAN_EXTENDED_ID;  // ID extendido de 29 bits
+	sFilterConfig.FilterIndex = 0;
+	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+
+	//	CAN Standard Configuration
+//	  sFilterConfig.FilterID1 = 0x18FF1234;     // ID extendido específico
+//    sFilterConfig.FilterID2 = 0x1FFFFFFF;     // Máscara para todos los bits
+
+	//	CAN J1939 Configuration
+//    sFilterConfig.FilterID1 = 0x18FF1234;     // ID extendido específico
+//    sFilterConfig.FilterID2 = 0x1FFFFFFF;     // Máscara para todos los bits
+
+	sFilterConfig.FilterID1 = 0x00000000;
+	sFilterConfig.FilterID2 = 0x00000000;
+
+//	sFilterConfig.FilterID1 = 0x18FF0000;  // PGN J1939 (0x18FF####)
+//	sFilterConfig.FilterID2 = 0x18FFFF00;  // Máscara para ignorar la dirección fuente
 
     /* Configure global filter to reject all non-matching frames */
     HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
@@ -316,10 +354,19 @@ static void MX_FDCAN1_Init(void)
          /* Notification Error */
 
      /* Configure Tx buffer message */
-    TxHeader.Identifier = 0x111;
-    TxHeader.IdType = FDCAN_STANDARD_ID;
+//	CAN Standard Configuration
+//    TxHeader.Identifier = 0x121;
+//    TxHeader.IdType = FDCAN_STANDARD_ID;
+//    TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+//    TxHeader.DataLength = FDCAN_DLC_BYTES_8;
+
+//	CAN J1939 Configuration
+    TxHeader.Identifier = 0x18FF1233;  // Ejemplo de ID extendido J1939
+    TxHeader.IdType = FDCAN_EXTENDED_ID;
     TxHeader.TxFrameType = FDCAN_DATA_FRAME;
     TxHeader.DataLength = FDCAN_DLC_BYTES_8;
+
+
     TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
     TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
     TxHeader.FDFormat = FDCAN_FD_CAN;
@@ -460,7 +507,22 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
+    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
+        FDCAN_RxHeaderTypeDef RxHeader;
+        uint8_t RxData[8];
 
+        if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
+            printf("\nMensaje recibido: ID=0x%lx, PGN=0x%lx\n", RxHeader.Identifier, (RxHeader.Identifier >> 8) & 0xFFFF);
+
+            for (int i = 0; i < 8; i++) {
+                printf("Dato[%d]: 0x%02X\n", i, RxData[i]);
+            }
+        }
+    } else {
+    	printf("Wrong test\n\r");
+    }
+}
 /* USER CODE END 4 */
 
 /**
